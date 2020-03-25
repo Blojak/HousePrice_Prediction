@@ -474,3 +474,8 @@ fig.savefig('figures/ResidualPlot_forest.eps',
 
 rmse_lr_forest = np.sqrt(np.mean(y_pred_test_forest  - y_test)**2)
 
+'''
+Even though the ordinary Lasso regression delivers a better R^2, the additional
+Random Forest Regression is useful to obtain a better RMSE. The R^2 metric is 
+probably not the best choice for cross-sectional data
+'''
