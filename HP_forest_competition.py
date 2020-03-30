@@ -129,7 +129,7 @@ combined.drop(['YearBuilt', 'YearRemodAdd','YrSold'], inplace=True, axis = 1)
 # =============================================================================
 # Remove obvious Outliers
 # =============================================================================
-combined = combined[combined.GrLivArea < 4000]
+combined[combined.GrLivArea > 4000] = 4000
 
 # =============================================================================
 # Drop some vars (which do not show a clear explanatory power)
@@ -149,25 +149,13 @@ def where_nan_index(df, col_nam):
     x = np.array(x)
     x = x.T
     return x
+combined.loc[:, 'Functional']      = combined.loc[:, 'Functional'].fillna('Typ')
+combined.loc[:, 'Electrical']      = combined.loc[:, 'Electrical'].fillna('SBrkr')
 
-El_nan          = where_nan_index(combined, 'Electrical')
-Functional      = where_nan_index(combined, 'Functional')
-
-combined['Target']  = target
-combined            = combined.drop(combined.index[El_nan])
-combined            = combined.drop(combined.index[Functional])
-combined.reset_index(inplace=True)
-combined.drop(['index'], inplace = True, axis=1)
-
-
-
-t_nan               = np.array(np.where(combined['Target'].isnull().values ==True)).T
-target              = combined['Target'].drop(combined['Target'].index[t_nan])
-combined.drop(['Target'], inplace = True, axis=1)
 
 training_data_len   = target.shape[0]
 
-del El_nan, Functional, t_nan
+# del El_nan, Functional, t_nan
 
 
 # =============================================================================
@@ -197,29 +185,6 @@ combined_hot        = pd.concat([combined_num, combined_cat], axis = 1)
 comb_hot_columns    = combined_hot.columns
 
 
-# =============================================================================
-# Show the Distribution of the SalesPrice Raw Data (y)
-# =============================================================================
-
-sb.distplot(target , fit = norm);
-# Get the fitted parameters used by the function
-(mu, sigma) = norm.fit(target)
-print( '\n mu = {:.2f} and sigma = {:.2f}\n'.format(mu, sigma))
-#Now plot the distribution
-plt.legend(['Normal dist. ($\mu=$ {:.2f} and $\sigma=$ {:.2f} )'.format(mu, sigma)],
-            loc='best')
-plt.ylabel('Frequency')
-plt.title('(Log) SalePrice distribution')
-plt.savefig('figures/LogSalesPrice_Dist.eps')
-plt.show()
-
-# Get also the QQ-plot
-fig = plt.figure()
-res = stats.probplot(target, plot=plt)
-plt.title('Q-Q Plot (log(y))')
-plt.savefig('figures/QQPlot_logy.eps')
-plt.show()
-
 
 
 # =============================================================================
@@ -228,41 +193,7 @@ plt.show()
 # Take logs of the dependent variable (due to skewness)
 target = np.log(target)
 
-
-combined_corr = combined_hot[num_cols].iloc[:training_data_len,:]
-combined_corr['SalesPrice'] = target
-
-# Find most important features relative to target
-corr_withoutCat  = np.abs(combined_corr).corr()
-corr_withoutCat.sort_values(['SalesPrice'], ascending = False, inplace = True)
-corr_withoutCat  = corr_withoutCat['SalesPrice']
-corr_indTop      = corr_withoutCat[corr_withoutCat>0.4].index
-corr_indTop = corr_indTop[1:]
-
-
-# =============================================================================
-# Plot log-SalesPrice Distribution
-# =============================================================================
-sb.distplot(target , fit = norm);
-# Get the fitted parameters used by the function
-(mu, sigma) = norm.fit(target)
-print( '\n mu = {:.2f} and sigma = {:.2f}\n'.format(mu, sigma))
-#Now plot the distribution
-plt.legend(['Normal dist. ($\mu=$ {:.2f} and $\sigma=$ {:.2f} )'.format(mu, sigma)],
-            loc='best')
-plt.ylabel('Frequency')
-plt.title('(Log) SalePrice distribution')
-plt.savefig('figures/LogSalesPrice_Dist.eps')
-plt.show()
-
-#Get also the QQ-plot
-fig = plt.figure()
-res = stats.probplot(target, plot=plt)
-plt.title('Q-Q Plot (log(y))')
-plt.savefig('figures/QQPlot_logy.eps')
-plt.show()
-
-
+training_data_len = len(target)
 # =============================================================================
 # Pre-Processing -  Standardization
 # =============================================================================
@@ -273,50 +204,16 @@ X                                          = combined_hot.values
 # Standardize the metric variables not the dummies
 X[:,:np.array(combined_num_col).shape[0]]  = scaler_x.fit_transform(X[:,:np.array(combined_num_col).shape[0]])
 
-X_std   =     X[:training_data_len,:]
+X_train   =     X[:training_data_len,:]
 target  = np.array(target).reshape(-1,1)
-y_std   = scaler_y.fit_transform(target)
+y_train   = scaler_y.fit_transform(target)
 
 # Split standardized '(test)Data' into test and trainings data
-tscv = TimeSeriesSplit()
-for train_index, test_index in tscv.split(X_std):
-    X_train, X_test = X_std[train_index,:], X_std[test_index,:]
-    y_train, y_test = y_std[train_index], y_std[test_index]
+# tscv = TimeSeriesSplit()
+# for train_index, test_index in tscv.split(X_std):
+#     X_train, X_test = X_std[train_index,:], X_std[test_index,:]
+#     y_train, y_test = y_std[train_index], y_std[test_index]
     
-# =============================================================================
-# Linear Regression 
-# =============================================================================
-# Perform a linear regression which will be serve as benchmark
-lr = LinearRegression()
-
-# Train the model using the training sets
-lr.fit(X_train , y_train)
-y_pred_test_lr         = lr.predict(X_test)
-y_pred_train_lr        = lr.predict(X_train)
-
-lr_resid_test          = y_test -y_pred_test_lr
-lr_resid_train         = y_train -y_pred_train_lr
-
-fig, ax = plt.subplots()
-ax.scatter(y_pred_train_lr, lr_resid_train,
-            c = 'red',
-            edgecolor = 'black',
-            marker = 'o', label = 'Train Data')
-ax.scatter(y_pred_test_lr, lr_resid_test,
-            c = 'black',
-            edgecolor = 'white',
-            marker = 'o', label = 'Test Data')
-ax.set_title('Residual Plot (Linear Regression)')
-ax.hlines(y=0, xmin = -10, xmax = 10, lw=1.0, color = 'black', linestyle = 'dashed')
-ax.set_xlim([-4,4])
-ax.set_ylim([-4,4])
-ax.legend(loc= 'upper left')
-fig.savefig('figures/ResidualPlot_LR.eps',  
-            bbox_inches='tight', format='eps')
-
-rmse_lr = np.sqrt(np.mean(y_pred_test_lr  - y_test)**2)
-
-
 
 # =============================================================================
 # Lasso Regression -- Feature Selection
@@ -326,33 +223,12 @@ lasso               = LassoCV(cv=10, random_state=0).fit(X_train, y_train)
 lasso_score         = lasso.score(X_train, y_train)
 
 y_pred_lasso_train  = lasso.predict(X_train).reshape(-1,1)
-y_pred_lasso_test   = lasso.predict(X_test).reshape(-1,1)
+# y_pred_lasso_test   = lasso.predict(X_test).reshape(-1,1)
 
 lasso_resid_train   = y_train-  y_pred_lasso_train
-lasso_resid_test    = y_test -  y_pred_lasso_test
+# lasso_resid_test    = y_test -  y_pred_lasso_test
 
-
-# Illustrate
-fig, ax = plt.subplots()
-ax.scatter(y_pred_lasso_train, lasso_resid_train,
-            c = 'red',
-            edgecolor = 'black',
-            marker = 'o', label = 'Train Data')
-ax.scatter(y_pred_lasso_test, lasso_resid_test,
-            c = 'black',
-            edgecolor = 'white',
-            marker = 'o', label = 'Test Data')
-ax.hlines(y=0, xmin = -10, xmax = 10, lw=1.0, color = 'black', linestyle = 'dashed')
-ax.legend(loc= 'upper left')
-ax.set_xlim([-4,4])
-ax.set_ylim([-4,4])
-ax.set_title('Residual Plot (Lasso Regression)')
-fig.savefig('figures/ReisdualPlot_Lasso.eps',  
-            bbox_inches='tight', format='eps')
-
-
-rmse_lasso = np.sqrt(np.mean(y_pred_lasso_test - y_test)**2)
-
+rmse_lasso = np.sqrt(np.mean(y_pred_lasso_train - y_train)**2)
 
 # get coefs
 lasso_coefs         = lasso.coef_
@@ -376,16 +252,16 @@ X                                          = combined_sel.values
 # Standardize the metric regressors
 X[:,:np.array(col_nondummy).shape[0]]      = scaler_x.fit_transform(X[:,:np.array(col_nondummy).shape[0]])
 
-X           =     X[:training_data_len,:]
-target      = np.array(target).reshape(-1,1)
-y           = scaler_y.fit_transform(target)
+X_train             =     X[:training_data_len,:]
+target              = np.array(target).reshape(-1,1)
+y_train             = scaler_y.fit_transform(target)
 
 # Split standardized '(test)Data' into test and trainings data
 # --> Cross Validated
-tscv = TimeSeriesSplit()
-for train_index, test_index in tscv.split(X):
-    X_train, X_test = X[train_index,:], X[test_index,:]
-    y_train, y_test = y[train_index], y[test_index]
+# tscv = TimeSeriesSplit()
+# for train_index, test_index in tscv.split(X):
+#     X_train, X_test = X[train_index,:], X[test_index,:]
+#     y_train, y_test = y[train_index], y[test_index]
 
 
 # =============================================================================
@@ -446,36 +322,36 @@ forest.fit(X_train , y_train)
 
 forest_score              = forest.score(X_train , y_train)
 
-y_pred_test_forest        = forest.predict(X_test).reshape(-1,1)
+# y_pred_test_forest        = forest.predict(X_test).reshape(-1,1)
 
 y_pred_train_forest       = forest.predict(X_train).reshape(-1,1)
 
 
-lr_resid_test_forest      = y_test -y_pred_test_forest
+# lr_resid_test_forest      = y_test -y_pred_test_forest
 lr_resid_train_forest     = y_train - y_pred_train_forest
 
 
-fig, ax = plt.subplots()
-ax.scatter(y_pred_train_forest, lr_resid_train_forest,
-            c = 'red',
-            edgecolor = 'black',
-            marker = 'o', label = 'Train Data')
-ax.scatter(y_pred_test_forest, lr_resid_test_forest,
-            c = 'black',
-            edgecolor = 'white',
-            marker = 'o', label = 'Test Data')
-ax.set_title('Residual Plot (RF-Regression)')
-ax.hlines(y=0, xmin = -10, xmax = 10, lw=1.0, color = 'black', linestyle = 'dashed')
-ax.set_xlim([-4,4])
-ax.set_ylim([-4,4])
-ax.legend(loc= 'upper left')
-fig.savefig('figures/ResidualPlot_forest.eps',  
-            bbox_inches='tight', format='eps')
-
-rmse_lr_forest = np.sqrt(np.mean(y_pred_test_forest  - y_test)**2)
+rmse_lr_forest = np.sqrt(np.mean(y_pred_train_forest  - y_train)**2)
 
 '''
 Even though the ordinary Lasso regression delivers a better R^2, the additional
 Random Forest Regression is useful to obtain a better RMSE. The R^2 metric is 
 probably not the best choice for cross-sectional data
 '''
+train_data, test_data = get_data()
+
+
+y_prediction_forest      = forest.predict(X[training_data_len:,:]).reshape(-1,1)
+y_forest = np.exp(scaler_y.inverse_transform(y_prediction_forest))
+
+predictions = pd.DataFrame(np.concatenate((np.arange(1461,1461+y_forest.shape[0]).reshape(-1,1), y_forest),  axis = 1)
+                           , columns = ['Id', 'SalePrice'])
+predictions['Id'] = predictions['Id'].astype('int32')
+
+predictions.to_csv('D:/Dropbox/Work/Python Scripts/MyProjects/HousePrice/HousePricesubmission.csv', index = False)
+
+
+
+
+
+
