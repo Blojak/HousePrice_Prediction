@@ -413,6 +413,7 @@ fig, ax = plt.subplots()
 ax.set_title('Validation Curve with RF')
 ax.set_label(r'param')
 ax.set_ylabel("Score")
+ax.set_xlabel('No of trees in forest (n_estimators)')
 ax.set_ylim(0.0, 1.1)
 lw = 2
 ax.plot(param_est, forest_train_score_mean, label="Training score",
