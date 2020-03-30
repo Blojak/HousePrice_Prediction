@@ -214,6 +214,8 @@ plt.legend(['Normal dist. ($\mu=$ {:.2f} and $\sigma=$ {:.2f} )'.format(mu, sigm
 plt.ylabel('Frequency')
 plt.title('(Log) SalePrice distribution')
 plt.savefig('figures/LogSalesPrice_Dist.eps')
+plt.savefig('figures/LogSalesPrice_Dist.png')
+
 plt.show()
 
 # Get also the QQ-plot
@@ -221,6 +223,8 @@ fig = plt.figure()
 res = stats.probplot(target, plot=plt)
 plt.title('Q-Q Plot (log(y))')
 plt.savefig('figures/QQPlot_logy.eps')
+plt.savefig('figures/QQPlot_logy.png')
+
 plt.show()
 
 
@@ -256,6 +260,8 @@ plt.legend(['Normal dist. ($\mu=$ {:.2f} and $\sigma=$ {:.2f} )'.format(mu, sigm
 plt.ylabel('Frequency')
 plt.title('(Log) SalePrice distribution')
 plt.savefig('figures/LogSalesPrice_Dist.eps')
+plt.savefig('figures/LogSalesPrice_Dist.png')
+
 plt.show()
 
 #Get also the QQ-plot
@@ -263,6 +269,8 @@ fig = plt.figure()
 res = stats.probplot(target, plot=plt)
 plt.title('Q-Q Plot (log(y))')
 plt.savefig('figures/QQPlot_logy.eps')
+plt.savefig('figures/QQPlot_logy.png')
+
 plt.show()
 
 
@@ -316,6 +324,8 @@ ax.set_ylim([-4,4])
 ax.legend(loc= 'upper left')
 fig.savefig('figures/ResidualPlot_LR.eps',  
             bbox_inches='tight', format='eps')
+fig.savefig('figures/ResidualPlot_LR.png',  
+            bbox_inches='tight', format='png')
 
 rmse_lr = np.sqrt(np.mean(y_pred_test_lr  - y_test)**2)
 
@@ -352,6 +362,8 @@ ax.set_ylim([-4,4])
 ax.set_title('Residual Plot (Lasso Regression)')
 fig.savefig('figures/ReisdualPlot_Lasso.eps',  
             bbox_inches='tight', format='eps')
+fig.savefig('figures/ReisdualPlot_Lasso.png',  
+            bbox_inches='tight', format='png')
 
 
 rmse_lasso = np.sqrt(np.mean(y_pred_lasso_test - y_test)**2)
@@ -476,6 +488,8 @@ ax.set_ylim([-4,4])
 ax.legend(loc= 'upper left')
 fig.savefig('figures/ResidualPlot_forest.eps',  
             bbox_inches='tight', format='eps')
+fig.savefig('figures/ResidualPlot_forest.png',  
+            bbox_inches='tight', format='png')
 
 rmse_lr_forest = np.sqrt(np.mean(y_pred_test_forest  - y_test)**2)
 
