@@ -428,6 +428,7 @@ ax.fill_between(param_est, forest_valid_score_mean - forest_valid_score_std ,
 ax.legend(loc="best")
 # ax.set_ylim([0.7,1])
 fig.savefig('figures/RF_CV_Validation_Curve.eps')
+fig.savefig('figures/RF_CV_Validation_Curve.png')
 fig.show()
 
 # =============================================================================
