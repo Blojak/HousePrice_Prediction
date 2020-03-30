@@ -160,7 +160,9 @@ combined.reset_index(inplace=True)
 combined.drop(['index'], inplace = True, axis=1)
 
 # Identify nans with panda
-t_nan               = combined.Target.isna()[combined.Target.isna() == True].index
+# t_nan               = combined.Target.isna()[combined.Target.isna() == True].index
+t_nan               = combined.Target[combined.Target.isna()].index
+
 # Alternatively with numpy
 # t_nan               = np.array(np.where(combined['Target'].isnull().values ==True)).T
 target              = combined['Target'].drop(combined['Target'].index[t_nan])
